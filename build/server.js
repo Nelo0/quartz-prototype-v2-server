@@ -1,8 +1,10 @@
 "use strict";
 var FCM = require('fcm-node');
-var serverKey = 'AAAAU4oYkts:APA91bEtoOdO75uTHC_3PaYUjUTyaIYzjJRZtxxIGShTnx5zSksEZClUQ0lyTEu4l86yg2Y57cmXD-wlcKj2s9j1k-z0up7ZyppcJLvkG8GNRqiKtdiZkh4D3aFKtkicevsChnc_H1qc';
 var fcm = new FCM(serverKey);
-var message = {
+
+var serverKey = 'AAAAU4oYkts:APA91bEtoOdO75uTHC_3PaYUjUTyaIYzjJRZtxxIGShTnx5zSksEZClUQ0lyTEu4l86yg2Y57cmXD-wlcKj2s9j1k-z0up7ZyppcJLvkG8GNRqiKtdiZkh4D3aFKtkicevsChnc_H1qc';
+
+var spendNotification = {
     to: 'enQbqDxAQYqFzM-qIsvktz:APA91bEMHJ8_NrQcHTpmL70eFS7Kw5CFqUPUC6fTWAQq1EFSikDyVRuoT_ZrJvENoxSrIrF_6f-kC9JqS7fSXNn1DP3FT8eysnPOGXINllYjvwtca5EDg3_EmiTSCNSpxM4OepvHECjm',
     notification: {
         title: 'Payment Authentication Needed',
@@ -18,13 +20,12 @@ var message = {
         }),
     }
 };
-fcm.send(message, function (err, response) {
+
+fcm.send(spendNotification, function (err, response) {
     if (err) {
         console.log("Something has gone wrong!" + err);
         console.log("Respponse:! " + response);
-    }
-    else {
-        // showToast("Successfully sent with response");
+    } else {
         console.log("Successfully sent with response: ", response);
     }
 });
