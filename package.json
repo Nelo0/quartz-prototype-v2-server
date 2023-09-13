@@ -11,6 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@coral-xyz/anchor": "^0.28.1-beta.2",
+    "@solana/web3.js": "^1.78.5",
     "fcm-node": "^1.6.1"
   },
   "devDependencies": {
