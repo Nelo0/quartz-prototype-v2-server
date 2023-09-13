@@ -1,6 +1,6 @@
 import { Connection, Keypair, PublicKey, clusterApiUrl } from "@solana/web3.js";
 import { QUARTZ_SPEND_ADDRESS, USDC_MINT_ADDRESS, checkCanAfford } from "../utils/balance";
-import { encodeURL, createQR } from '@solana/pay';
+import { encodeURL, createQR, findReference, validateTransfer, FindReferenceError } from '@solana/pay';
 import BigNumber from 'bignumber.js';
 import { getFcmMessage } from "../utils/message";
 
@@ -14,6 +14,7 @@ let connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
 let main = async () => {
     let userId = 1;
     let transactionAmount = 2
+    let paymentStatus: string;
 
     //checks if the user can afford the transaction
     let canAfford = await checkCanAfford(connection, transactionAmount, userId);
@@ -26,7 +27,7 @@ let main = async () => {
     //creates a payment link
     console.log('💰 Create a payment request link \n');
     const recipient = QUARTZ_SPEND_ADDRESS
-    let amount = new BigNumber(transactionAmount);
+    const amount = new BigNumber(transactionAmount);
     const reference = new Keypair().publicKey;
     const label = 'Impala';
     const message = `Impala - €${transactionAmount}`;
@@ -47,7 +48,73 @@ let main = async () => {
         }
 
     });
+    //update payment status
+    paymentStatus = 'pending';
+
+    console.log('\n5. Find the transaction');
+    let signatureInfo;
+
+    const signature: string = await new Promise((resolve, reject) => {
+        /**
+         * Retry until we find the transaction
+         *
+         * If a transaction with the given reference can't be found, the `findTransactionSignature`
+         * function will throw an error. There are a few reasons why this could be a false negative:
+         *
+         * - Transaction is not yet confirmed
+         * - Customer is yet to approve/complete the transaction
+         *
+         * You can implement a polling strategy to query for the transaction periodically.
+         */
+        const interval = setInterval(async () => {
+            console.count('Checking for transaction...');
+            try {
+                signatureInfo = await findReference(connection, reference, { finality: 'confirmed' });
+                console.log('\n 🖌  Signature found: ', signatureInfo.signature);
+                clearInterval(interval);
+                resolve(signatureInfo.signature);
+            } catch (error: any) {
+                if (!(error instanceof FindReferenceError)) {
+                    console.error(error);
+                    clearInterval(interval);
+                    reject(error);
+                }
+            }
+        }, 250);
+    });
+
+    // Update payment status
+    paymentStatus = 'confirmed';
+
+    /**
+     * Validate transaction
+     *
+     * Once the `findTransactionSignature` function returns a signature,
+     * it confirms that a transaction with reference to this order has been recorded on-chain.
+     *
+     * `validateTransactionSignature` allows you to validate that the transaction signature
+     * found matches the transaction that you expected.
+     */
+    console.log('\n6. 🔗 Validate transaction \n');
+
+    try {
+        await validateTransfer(connection, signature, { recipient: QUARTZ_SPEND_ADDRESS, amount });
+
+        // Update payment status
+        paymentStatus = 'validated';
+        console.log('✅ Payment validated');
+        console.log('💳 Accept debit card transaction');
+    } catch (error) {
+        console.error('❌ Payment failed', error);
+    }
+
 }
 
-main();
+main().then(
+    () => process.exit(),
+    (err) => {
+        console.error(err);
+        process.exit(-1);
+    }
+);
 
