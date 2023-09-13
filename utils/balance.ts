@@ -14,9 +14,9 @@ const VAULT_SEED = "vault"
 const VAULT_ATA_SEED = "ata"
 export const RPC_ENDPOINT = 'https://devnet.helius-rpc.com/?api-key=1ce851a8-f463-4114-b601-0ae950264e20'
 
-const QUARTZ_SPEND_ADDRESS = new PublicKey("jNFx1wSfb8CUxe8UZwfD3GnkBKvMqiUg69JHYM1Pi2G");
+export const QUARTZ_SPEND_ADDRESS = new PublicKey("jNFx1wSfb8CUxe8UZwfD3GnkBKvMqiUg69JHYM1Pi2G");
 const QUARTZ_PROGRAM_ID = new PublicKey("5Dxjir2yDi1aZAzgcnkEGmnLVop49DpNoru3c8DNAtcc");       // Devnet Quartz address
-const USDC_MINT_ADDRESS = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");       // Devnet USDC address
+export const USDC_MINT_ADDRESS = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");       // Devnet USDC address
 // const USDC_MINT_ADDRESS = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");       // Mainnet USDC address
 
 const DEVNET_USDC_DECIMALS = 6;
@@ -28,7 +28,7 @@ export const getCardTokenMint = async (userId: number) => {
     return USDC_MINT_ADDRESS.toBase58();
 }
 
-export const getWalletAddress =async (userId:number) => {
+const getWalletAddress =async (userId:number) => {
     //TODO
     //use the userId to find the users wallet address stored in our database
     //return vaultAddress as a string
@@ -50,7 +50,7 @@ const getVaultAta = (userPubkey: PublicKey, tokenAddress: PublicKey) => {
     )[0];
 }
 
-export const getVaultBalance = async (connection: Connection, userId: number) => {
+const getVaultBalance = async (connection: Connection, userId: number) => {
     const wallet = await getWalletAddress(userId);
     const vault = getVault(new PublicKey(wallet));
 
@@ -77,15 +77,14 @@ const getVaultAtaBalance = async (connection: Connection, userId: number, tokenA
     }
 }
 
-export const getVaultUsdcBalance = async (connection: Connection, userId: number) => {
+const getVaultUsdcBalance = async (connection: Connection, userId: number) => {
     const rawBalance = await getVaultAtaBalance(connection, userId, USDC_MINT_ADDRESS);
     return rawBalance / 10 ** DEVNET_USDC_DECIMALS;
 }
 
-
 //coin gecko
 
-export const getSolanaPrice = async () => {
+const getSolanaPrice = async () => {
     const response = await fetch(
       `https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd`,
       {
@@ -96,3 +95,25 @@ export const getSolanaPrice = async () => {
     const data = await response.json();
     return data.solana.usd;
   };
+
+
+  export async function checkCanAfford(connection: Connection, amount: number, userId: number) {
+    let userBalance;
+
+    let cardTokenMint = await getCardTokenMint(userId);
+    if (cardTokenMint === 'native_sol') {
+        userBalance = await getVaultBalance(connection, userId)
+        userBalance = await getSolanaPrice() * userBalance;
+    } else {
+        //USDC
+        userBalance = await getVaultUsdcBalance(connection, userId)
+    }
+    console.log("Vault of mint: ", cardTokenMint, " Balance: ", userBalance);
+
+    if (userBalance > amount) {
+        return true;
+    }
+    else {
+        return false
+    }
+}
