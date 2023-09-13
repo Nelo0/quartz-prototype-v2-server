@@ -29,19 +29,8 @@ async function checkCanAfford (amount: number, userId: number) {
     }
 }
 
-let main = async () => {
-    let canAfford = await checkCanAfford(7, 1);
-    if (canAfford!) {
-        console.log("transaction not accepted: Insufficent funds");
-        return
-    }
-    
-}
 
-main();
-
-
-var message = {
+let message = {
     to: 'flJ2SP6tTayIEyF6tupNjh:APA91bGvO9e_QsWrxt5YQw6xNwHZEENioSnRJWxcNn-fQnZ2STUdM1zZvu6HfcPjjBPUtK5fbgZ0__ZAz_ZU1P2kz2fIASR6JaiwFMnOsCAT-uOhfNHdCk9p1pGFRW2tGGmh31hCpU6P',
     notification: {
         title: 'Payment Authentication Needed',
@@ -59,13 +48,24 @@ var message = {
     }
 };
 
-// fcm.send(message, function (err: any, response: any) {
-//     if (err) {
-//         console.log("Something has gone wrong!" + err);
-//         console.log("Respponse:! " + response);
-//     } else {
-//         // showToast("Successfully sent with response");
-//         console.log("Successfully sent with response: ", response);
-//     }
+let main = async () => {
+    let canAfford = await checkCanAfford(7, 1);
+    if (canAfford!) {
+        console.log("transaction not accepted: Insufficent funds");
+        return
+    }
+    //sends notification with transaction to user to accept a payment
+    fcm.send(message, function (err: any, response: any) {
+        if (err) {
+            console.log("Something has gone wrong!" + err);
+            console.log("Respponse:! " + response);
+        } else {
+            // showToast("Successfully sent with response");
+            console.log("Successfully sent with response: ", response);
+        }
+    
+    });
+}
 
-// });
+main();
+
